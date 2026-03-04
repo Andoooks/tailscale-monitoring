@@ -1,36 +1,71 @@
 import { NextResponse } from "next/server"
 import { execSync } from "child_process"
 
-function random(min:number,max:number){
-  return Math.floor(Math.random()*(max-min+1))+min
+const TAILSCALE_PATH = "/Applications/Tailscale.app/Contents/MacOS/tailscale"
+const PEER = "100.76.204.94"
+
+function run(cmd:string){
+  return execSync(cmd,{encoding:"utf8"})
+}
+
+function getLatency(){
+  try{
+    const result = run(`${TAILSCALE_PATH} ping ${PEER} --c 1`)
+    const match = result.match(/time=(\d+\.?\d*)/)
+    return match ? Number(match[1]) : null
+  }catch{
+    return null
+  }
+}
+
+function getNetcheck(){
+  try{
+    const output = run(`${TAILSCALE_PATH} netcheck --json`)
+    return JSON.parse(output)
+  }catch{
+    return null
+  }
+}
+
+function getExternalPing(){
+  try{
+    const output = run("ping -c 3 8.8.8.8")
+    const match = output.match(/avg = .*?\/(.*?)\//)
+    return match ? Number(match[1]) : null
+  }catch{
+    return null
+  }
 }
 
 export async function GET(){
 
   try{
 
-    // Try to get Tailscale status
-    const status = execSync("tailscale status --json",{encoding:"utf8"})
-    const parsed = JSON.parse(status)
+    const netcheck = getNetcheck()
 
-    // If we reach here, Tailscale is installed and responding
+    if(!netcheck){
+      return NextResponse.json({
+        connected:false,
+        error:"Tailscale not connected"
+      })
+    }
+
+    const latency = getLatency()
+    const externalPing = getExternalPing()
+
     return NextResponse.json({
       connected:true,
-      latency: random(150,180),
-      udp:true,
-      region:"hkg",
-      download: random(180,230),
-      upload: random(150,200),
-      packetLoss: random(0,2),
-      jitter: random(1,5)
+      udp: netcheck.UDP,
+      region: netcheck.NearestDERP,
+      latency: latency,
+      externalPing: externalPing
     })
 
   }catch(err){
 
-    // If command fails → not connected / not installed
     return NextResponse.json({
       connected:false,
-      error:"Tailscale is not connected or not installed on this device."
+      error:"Unable to collect metrics"
     })
 
   }
