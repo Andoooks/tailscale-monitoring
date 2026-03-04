@@ -9,15 +9,25 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "echarts": "^6.0.0",
+    "echarts-for-react": "^3.0.6",
     "next": "16.1.6",
+    "ping": "^0.4.4",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "speedtest-net": "^2.2.0",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/ping": "^0.4.4",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/speedtest-net": "^2.1.5",
+    "@types/sqlite3": "^3.1.11",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
