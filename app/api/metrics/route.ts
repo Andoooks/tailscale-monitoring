@@ -7,33 +7,28 @@ const PEER = "100.76.204.94"
 function run(cmd: string) {
   try {
     return execSync(cmd, { encoding: "utf8" })
-  } catch {
+  } catch (err) {
     return ""
   }
 }
 
-function getStatus() {
+function checkConnected() {
   try {
     const output = run(`${TAILSCALE} status --json`)
-    if (!output) return null
+    if (!output) return false
 
     const data = JSON.parse(output)
 
-    // Check backend state
-    if (data.BackendState === "Running") {
-      return data
-    }
-
-    return null
+    return data.BackendState === "Running"
   } catch {
-    return null
+    return false
   }
 }
 
 function getNetcheck() {
   try {
     const output = run(`${TAILSCALE} netcheck --json`)
-    return output ? JSON.parse(output) : null
+    return JSON.parse(output)
   } catch {
     return null
   }
@@ -73,33 +68,27 @@ function getExternalPing() {
 }
 
 export async function GET() {
-  try {
-    const status = getStatus()
 
-    if (!status) {
-      return NextResponse.json({
-        connected: false,
-        error: "Tailscale not connected"
-      })
-    }
+  const connected = checkConnected()
 
-    const netcheck = getNetcheck()
-    const latency = getLatency()
-    const peerPing = getExternalPing()
-    const connection = getConnectionType()
-
-    return NextResponse.json({
-      connected: true,
-      connection,
-      udp: netcheck?.UDP ?? null,
-      region: netcheck?.NearestDERP ?? null,
-      latency,
-      peerPing
-    })
-  } catch {
+  if (!connected) {
     return NextResponse.json({
       connected: false,
-      error: "Unable to collect metrics"
+      error: "Tailscale not connected"
     })
   }
+
+  const netcheck = getNetcheck()
+  const latency = getLatency()
+  const peerPing = getExternalPing()
+  const connection = getConnectionType()
+
+  return NextResponse.json({
+    connected: true,
+    connection,
+    udp: netcheck?.UDP ?? null,
+    region: netcheck?.NearestDERP ?? null,
+    latency,
+    peerPing
+  })
 }
