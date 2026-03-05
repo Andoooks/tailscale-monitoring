@@ -1,3 +1,4 @@
+
 import { NextResponse } from "next/server"
 import { execSync } from "child_process"
 
@@ -7,19 +8,25 @@ const PEER = "100.76.204.94"
 function run(cmd: string) {
   try {
     return execSync(cmd, { encoding: "utf8" })
-  } catch (err) {
+  } catch {
     return ""
   }
 }
 
-function checkConnected() {
+function isConnected() {
   try {
     const output = run(`${TAILSCALE} status --json`)
     if (!output) return false
 
     const data = JSON.parse(output)
 
-    return data.BackendState === "Running"
+    return (
+      data.BackendState === "Running" &&
+      data.Self &&
+      data.Self.Online === true &&
+      data.Self.TailscaleIPs &&
+      data.Self.TailscaleIPs.length > 0
+    )
   } catch {
     return false
   }
@@ -57,7 +64,7 @@ function getConnectionType() {
   }
 }
 
-function getExternalPing() {
+function getPeerPing() {
   try {
     const output = run(`ping -c 3 ${PEER}`)
     const match = output.match(/avg = .*?\/(.*?)\//)
@@ -69,7 +76,7 @@ function getExternalPing() {
 
 export async function GET() {
 
-  const connected = checkConnected()
+  const connected = isConnected()
 
   if (!connected) {
     return NextResponse.json({
@@ -80,7 +87,7 @@ export async function GET() {
 
   const netcheck = getNetcheck()
   const latency = getLatency()
-  const peerPing = getExternalPing()
+  const peerPing = getPeerPing()
   const connection = getConnectionType()
 
   return NextResponse.json({
