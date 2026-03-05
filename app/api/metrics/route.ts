@@ -19,8 +19,8 @@ function getStatus() {
 
     const data = JSON.parse(output)
 
-    // Check if device has a Tailscale IP
-    if (data.Self && data.Self.TailscaleIPs && data.Self.TailscaleIPs.length > 0) {
+    // Check backend state
+    if (data.BackendState === "Running") {
       return data
     }
 
@@ -33,9 +33,7 @@ function getStatus() {
 function getNetcheck() {
   try {
     const output = run(`${TAILSCALE} netcheck --json`)
-    if (!output) return null
-
-    return JSON.parse(output)
+    return output ? JSON.parse(output) : null
   } catch {
     return null
   }
@@ -51,31 +49,26 @@ function getLatency() {
   }
 }
 
-function getPeerPing() {
+function getConnectionType() {
+  try {
+    const output = run(`${TAILSCALE} ping ${PEER} --c 1`)
+
+    if (output.includes("direct")) return "direct"
+    if (output.includes("DERP")) return "DERP"
+
+    return "unknown"
+  } catch {
+    return "unknown"
+  }
+}
+
+function getExternalPing() {
   try {
     const output = run(`ping -c 3 ${PEER}`)
     const match = output.match(/avg = .*?\/(.*?)\//)
     return match ? Number(match[1]) : null
   } catch {
     return null
-  }
-}
-
-function getConnectionType() {
-  try {
-    const output = run(`${TAILSCALE} ping ${PEER} --c 1`)
-
-    if (output.includes("direct")) {
-      return "direct"
-    }
-
-    if (output.includes("DERP")) {
-      return "DERP"
-    }
-
-    return "unknown"
-  } catch {
-    return "unknown"
   }
 }
 
@@ -92,7 +85,7 @@ export async function GET() {
 
     const netcheck = getNetcheck()
     const latency = getLatency()
-    const peerPing = getPeerPing()
+    const peerPing = getExternalPing()
     const connection = getConnectionType()
 
     return NextResponse.json({
@@ -109,4 +102,4 @@ export async function GET() {
       error: "Unable to collect metrics"
     })
   }
-      }
+}
