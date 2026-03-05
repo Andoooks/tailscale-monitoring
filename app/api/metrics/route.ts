@@ -53,234 +53,44 @@ function getSpeed() {
     const downloadMatch = output.match(/Download:\s+(\d+\.?\d*)/)
     const uploadMatch = output.match(/Upload:\s+(\d+\.?\d*)/)
 
-    const download = downloadMatch ? Number(downloadMatch[1]) : null
-    const upload = uploadMatch ? Number(uploadMatch[1]) : null
-
-    return { download, upload }
-  } catch {
-    return { download: null, upload: null }
-  }
-}
-
-export async function GET() {
-  try {
-    const status = getStatus()
-
-    if (!status) {
-      return NextResponse.json({
-        connected: false,
-        error: "Tailscale not connected"
-      })
-    }
-
-    const netcheck = getNetcheck()
-    const latency = getLatency()
-    const externalPing = getExternalPing()
-    const speed = getSpeed()
-
-    return NextResponse.json({
-      connected: true,
-      udp: netcheck?.UDP ?? null,
-      region: netcheck?.NearestDERP ?? null,
-      latency: latency,
-      externalPing: externalPing,
-      download: speed.download,
-      upload: speed.upload
-    })
-  } catch {
-    return NextResponse.json({
-      connected: false,
-      error: "Unable to collect metrics"
-    })
-  }
-}}
-
-function getExternalPing() {
-  try {
-    const output = run("ping -c 3 8.8.8.8")
-    const match = output.match(/avg = .*?\/(.*?)\//)
-    return match ? Number(match[1]) : null
-  } catch {
-    return null
-  }
-}
-
-function getSpeed() {
-  try {
-    const output = run("speedtest-cli --simple")
-
-    const downloadMatch = output.match(/Download:\s+(\d+\.?\d*)/)
-    const uploadMatch = output.match(/Upload:\s+(\d+\.?\d*)/)
-
-    const download = downloadMatch ? Number(downloadMatch[1]) : null
-    const upload = uploadMatch ? Number(uploadMatch[1]) : null
-
-    return { download, upload }
-
-  } catch {
-    return { download: null, upload: null }
-  }
-}
-
-export async function GET() {
-
-  try {
-
-    const status = getStatus()
-
-    if (!status) {
-      return NextResponse.json({
-        connected: false,
-        error: "Tailscale not connected"
-      })
-    }
-
-    const netcheck = getNetcheck()
-    const latency = getLatency()
-    const externalPing = getExternalPing()
-    const speed = getSpeed()
-
-    return NextResponse.json({
-      connected: true,
-      udp: netcheck?.UDP ?? null,
-      region: netcheck?.NearestDERP ?? null,
-      latency: latency,
-      externalPing: externalPing,
-      download: speed.download,
-      upload: speed.upload
-    })
-
-  } catch (err) {
-
-    return NextResponse.json({
-      connected: false,
-      error: "Unable to collect metrics"
-    })
-
-  }
-
-}}
-
-function getExternalPing(){
-  try{
-    const output = run("ping -c 3 8.8.8.8")
-    const match = output.match(/avg = .*?\/(.*?)\//)
-    return match ? Number(match[1]) : null
-  }catch{
-    return null
-  }
-}
-
-function getSpeed(){
-  try{
-
-    const output = run("speedtest-cli --simple")
-
-    const download = output.match(/Download:\s+(\d+\.?\d*)/)
-    const upload = output.match(/Upload:\s+(\d+\.?\d*)/)
-
     return {
-      download: download ? Number(download[1]) : null,
-      upload: upload ? Number(upload[1]) : null
+      download: downloadMatch ? Number(downloadMatch[1]) : null,
+      upload: uploadMatch ? Number(uploadMatch[1]) : null
     }
-
-  }catch{
-    return {download:null,upload:null}
-  }
-}
-
-export async function GET(){
-
-  try{
-
-    const status = getStatus()
-
-    if(!status){
-      return NextResponse.json({
-        connected:false,
-        error:"Tailscale not connected"
-      })
-    }
-
-    const netcheck = getNetcheck()
-    const latency = getLatency()
-    const externalPing = getExternalPing()
-    const speed = getSpeed()
-
-    return NextResponse.json({
-      connected:true,
-      udp: netcheck?.UDP,
-      region: netcheck?.NearestDERP,
-      latency: latency,
-      externalPing: externalPing,
-      download: speed.download,
-      upload: speed.upload
-    })
-
-  }catch(err){
-
-    return NextResponse.json({
-      connected:false,
-      error:"Unable to collect metrics"
-    })
-
-  }
-
-}  }
-}
-
-function getSpeed() {
-  try {
-
-    const output = run("speedtest-cli --simple")
-
-    const downloadMatch = output.match(/Download:\s+(\d+\.?\d*)/)
-    const uploadMatch = output.match(/Upload:\s+(\d+\.?\d*)/)
-
-    const download = downloadMatch ? Number(downloadMatch[1]) : null
-    const upload = uploadMatch ? Number(uploadMatch[1]) : null
-
-    return { download, upload }
-
   } catch {
     return { download: null, upload: null }
   }
 }
 
 export async function GET() {
-
   try {
+    const status = getStatus()
 
-    const netcheck = getNetcheck()
-
-    if (!netcheck) {
+    if (!status) {
       return NextResponse.json({
         connected: false,
         error: "Tailscale not connected"
       })
     }
 
+    const netcheck = getNetcheck()
     const latency = getLatency()
     const externalPing = getExternalPing()
     const speed = getSpeed()
 
     return NextResponse.json({
       connected: true,
-      udp: netcheck.UDP,
-      region: netcheck.NearestDERP,
-      latency: latency,
-      externalPing: externalPing,
+      udp: netcheck?.UDP ?? null,
+      region: netcheck?.NearestDERP ?? null,
+      latency,
+      externalPing,
       download: speed.download,
       upload: speed.upload
     })
-
-  } catch (err) {
-
+  } catch {
     return NextResponse.json({
       connected: false,
       error: "Unable to collect metrics"
     })
-
   }
-
 }
