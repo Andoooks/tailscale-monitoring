@@ -15,9 +15,12 @@ function run(cmd: string) {
 function getStatus() {
   try {
     const output = run(`${TAILSCALE} status --json`)
+    if (!output) return null
+
     const data = JSON.parse(output)
 
-    if (data.BackendState === "Running") {
+    // Check if device has a Tailscale IP
+    if (data.Self && data.Self.TailscaleIPs && data.Self.TailscaleIPs.length > 0) {
       return data
     }
 
@@ -30,6 +33,8 @@ function getStatus() {
 function getNetcheck() {
   try {
     const output = run(`${TAILSCALE} netcheck --json`)
+    if (!output) return null
+
     return JSON.parse(output)
   } catch {
     return null
@@ -56,6 +61,24 @@ function getPeerPing() {
   }
 }
 
+function getConnectionType() {
+  try {
+    const output = run(`${TAILSCALE} ping ${PEER} --c 1`)
+
+    if (output.includes("direct")) {
+      return "direct"
+    }
+
+    if (output.includes("DERP")) {
+      return "DERP"
+    }
+
+    return "unknown"
+  } catch {
+    return "unknown"
+  }
+}
+
 export async function GET() {
   try {
     const status = getStatus()
@@ -70,9 +93,11 @@ export async function GET() {
     const netcheck = getNetcheck()
     const latency = getLatency()
     const peerPing = getPeerPing()
+    const connection = getConnectionType()
 
     return NextResponse.json({
       connected: true,
+      connection,
       udp: netcheck?.UDP ?? null,
       region: netcheck?.NearestDERP ?? null,
       latency,
@@ -84,4 +109,4 @@ export async function GET() {
       error: "Unable to collect metrics"
     })
   }
-}
+      }
