@@ -52,17 +52,35 @@ function getPeerPing() {
   }
 }
 
-function getSpeed() {
+export async function GET() {
   try {
-    const output = run("speedtest-cli --simple")
+    const status = getStatus()
 
-    const downloadMatch = output.match(/Download:\s+(\d+\.?\d*)/)
-    const uploadMatch = output.match(/Upload:\s+(\d+\.?\d*)/)
-
-    return {
-      download: downloadMatch ? Number(downloadMatch[1]) : null,
-      upload: uploadMatch ? Number(uploadMatch[1]) : null
+    if (!status) {
+      return NextResponse.json({
+        connected: false,
+        error: "Tailscale not connected"
+      })
     }
+
+    const netcheck = getNetcheck()
+    const latency = getLatency()
+    const peerPing = getPeerPing()
+
+    return NextResponse.json({
+      connected: true,
+      udp: netcheck?.UDP ?? null,
+      region: netcheck?.NearestDERP ?? null,
+      latency,
+      peerPing
+    })
+  } catch {
+    return NextResponse.json({
+      connected: false,
+      error: "Unable to collect metrics"
+    })
+  }
+}    }
   } catch {
     return { download: null, upload: null }
   }
